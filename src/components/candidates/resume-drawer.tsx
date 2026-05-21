@@ -1,14 +1,22 @@
 // ============================================================
 // TalentFlow — Resume Drawer (Side Panel)
 // ============================================================
+// Uses the Strategy Pattern for file rendering:
+//   - PDF → iframe-based native PDF viewer
+//   - Image → <img> with blob URL
+//   - DOCX/DOC → mammoth.js HTML conversion
+//   - Unknown → fallback with download button
+//
+// See: src/lib/resume-renderers/ for strategy implementations
+// ============================================================
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { getFile } from '@/lib/db';
 import { cn } from '@/lib/utils';
 import { X, Download, FileText, Loader2 } from 'lucide-react';
-import { PDFViewer } from './pdf-viewer';
+import { getResumeRenderer } from '@/lib/resume-renderers';
 
 interface ResumeDrawerProps {
   open: boolean;
@@ -25,7 +33,6 @@ export function ResumeDrawer({
   fileName,
   fileType,
 }: ResumeDrawerProps) {
-  const [, setBlob] = useState<Blob | null>(null);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +57,6 @@ export function ResumeDrawer({
           return;
         }
 
-        setBlob(fileBlob);
         url = URL.createObjectURL(fileBlob);
         setBlobUrl(url);
       } catch {
@@ -80,7 +86,6 @@ export function ResumeDrawer({
       URL.revokeObjectURL(blobUrl);
       // eslint-disable-next-line react-hooks/set-state-in-effect -- cleanup on close
       setBlobUrl(null);
-      setBlob(null);
     }
   }, [open, blobUrl]);
 
@@ -95,9 +100,14 @@ export function ResumeDrawer({
     document.body.removeChild(a);
   };
 
-  /** Determine how to render the file. */
-  const isPDF = fileType === 'application/pdf' || fileName.endsWith('.pdf');
-  const isImage = fileType.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(fileName);
+  /**
+   * Strategy Pattern — delegate rendering to the appropriate strategy.
+   * useMemo ensures the renderer is only recomputed when file info changes.
+   */
+  const renderedContent = useMemo(() => {
+    if (!blobUrl) return null;
+    return getResumeRenderer({ blobUrl, fileName, fileType });
+  }, [blobUrl, fileName, fileType]);
 
   return (
     <>
@@ -150,7 +160,7 @@ export function ResumeDrawer({
             </div>
           </div>
 
-          {/* Content */}
+          {/* Content — delegated to strategy renderer */}
           <div className="flex-1 overflow-y-auto p-6">
             {loading && (
               <div className="flex flex-col items-center justify-center h-64">
@@ -166,36 +176,7 @@ export function ResumeDrawer({
               </div>
             )}
 
-            {!loading && !error && blobUrl && (
-              <>
-                {isPDF ? (
-                  <PDFViewer url={blobUrl} />
-                ) : isImage ? (
-                  <div className="flex items-center justify-center">
-                    {/* eslint-disable-next-line @next/next/no-img-element -- blob URLs are not supported by next/image */}
-                    <img
-                      src={blobUrl}
-                      alt={fileName}
-                      className="max-w-full h-auto rounded-xl shadow-lg"
-                    />
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-64">
-                    <FileText className="w-10 h-10 text-tf-text-secondary/30 mb-3" />
-                    <p className="text-sm text-tf-secondary mb-4">
-                      无法预览此文件类型
-                    </p>
-                    <button
-                      onClick={handleDownload}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-tf-accent text-white text-sm font-medium hover:bg-tf-accent-hover transition-colors cursor-pointer"
-                    >
-                      <Download className="w-4 h-4" />
-                      下载文件
-                    </button>
-                  </div>
-                )}
-              </>
-            )}
+            {!loading && !error && renderedContent}
           </div>
         </div>
       </div>

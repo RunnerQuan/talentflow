@@ -828,10 +828,6 @@ async function extractTextFromBuffer(
   fileName: string,
   mimeType: string,
 ): Promise<string> {
-  if (fileName.endsWith('.txt') || mimeType === 'text/plain') {
-    return buffer.toString('utf-8');
-  }
-
   if (fileName.endsWith('.docx') || fileName.endsWith('.doc')
     || mimeType.includes('word') || mimeType.includes('document')) {
     try {
@@ -883,7 +879,6 @@ function guessMime(fileName: string): string {
     pdf: 'application/pdf',
     doc: 'application/msword',
     docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    txt: 'text/plain',
     jpg: 'image/jpeg',
     jpeg: 'image/jpeg',
     png: 'image/png',

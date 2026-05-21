@@ -17,7 +17,7 @@ interface UploadZoneProps {
 export function UploadZone({
   onFileSelect,
   disabled = false,
-  accept = '.pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.webp,.gif,.bmp,.tiff',
+  accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,.gif,.bmp,.tiff',
 }: UploadZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -156,7 +156,7 @@ export function UploadZone({
               {isDragging ? '松开以上传文件' : '拖拽简历到此处，或点击上传'}
             </p>
             <p className="text-sm text-tf-text-secondary">
-              支持 PDF、Word (.doc/.docx)、TXT、图片 (JPG/PNG) 格式
+              支持 PDF、Word (.doc/.docx)、图片 (JPG/PNG) 格式
             </p>
           </div>
           <div className="flex items-center gap-2 text-xs text-tf-text-secondary">

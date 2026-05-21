@@ -74,7 +74,7 @@ export function getFileExtension(filename: string): string {
  * Check if a file type is supported for resume upload.
  */
 export function isSupportedFileType(filename: string): boolean {
-  const supported = ['pdf', 'doc', 'docx', 'txt', 'jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'tiff'];
+  const supported = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'tiff'];
   return supported.includes(getFileExtension(filename));
 }
 
