@@ -8,7 +8,6 @@ import { useMemo, useState } from 'react';
 import { useMatchStore } from '@/lib/store/match-store';
 import { GlassCard } from '@/components/ui/glass-card';
 import { Dialog } from '@/components/ui/dialog';
-import { RingProgress } from '@/components/ui/progress';
 import { cn, timeAgo, formatPercent, truncate } from '@/lib/utils';
 import type { MatchResultRecord } from '@/types';
 import {
@@ -239,45 +238,45 @@ function MatchReportDialog({
     <Dialog
       open={!!record}
       onClose={onClose}
-      maxWidth="3xl"
+      maxWidth="4xl"
       title={record.jobTitle || '匹配报告'}
     >
-      <div className="space-y-5">
-        {/* Score + Meta row */}
-        <div className="flex items-center gap-4 flex-wrap">
+      <div className="space-y-4">
+        {/* ── Header: Score + Meta ── */}
+        <div className="flex items-center gap-4">
           {/* Score ring */}
-          <div className="relative w-20 h-20 flex-shrink-0">
+          <div className="relative w-16 h-16 flex-shrink-0">
             <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
               <path
                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 fill="none"
                 stroke="rgba(0,0,0,0.06)"
-                strokeWidth="3.5"
+                strokeWidth="3"
               />
               <path
                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="3.5"
+                strokeWidth="3"
                 strokeDasharray={`${record.score}, 100`}
                 className={getScoreColor(record.score)}
                 strokeLinecap="round"
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className={cn('text-xl font-bold leading-none', getScoreColor(record.score))}>
+              <span className={cn('text-lg font-bold leading-none', getScoreColor(record.score))}>
                 {record.score.toFixed(0)}
               </span>
-              <span className="text-[10px] text-tf-text-secondary mt-0.5">/ 100</span>
+              <span className="text-[9px] text-tf-text-secondary mt-0.5">/ 100</span>
             </div>
           </div>
 
           {/* Meta info */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap mb-1">
+            <div className="flex items-center gap-2 flex-wrap">
               <span
                 className={cn(
-                  'inline-block px-3 py-1 rounded-lg text-xs font-medium',
+                  'inline-block px-2.5 py-0.5 rounded-lg text-xs font-medium',
                   getScoreBg(record.score)
                 )}
               >
@@ -290,140 +289,140 @@ function MatchReportDialog({
           </div>
         </div>
 
-        {/* Two-column layout: Strengths & Weaknesses + Dimension scores */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Left: Strengths & Weaknesses (2 cols) */}
-          <div className="lg:col-span-2 space-y-3">
-            {/* Strengths */}
-            {record.strengths && record.strengths.length > 0 && (
-              <div className="p-4 rounded-2xl bg-white/70 border border-gray-100 shadow-sm">
-                <h4 className="text-sm font-medium text-tf-primary mb-2.5 flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-emerald-500" />
-                  候选人优势
-                </h4>
-                <ul className="space-y-2">
-                  {record.strengths.map((s, i) => (
-                    <li
-                      key={i}
-                      className="flex items-start gap-2.5 text-sm text-tf-secondary"
-                    >
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
-                      <span className="leading-relaxed">{s}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Weaknesses */}
-            {record.weaknesses && record.weaknesses.length > 0 && (
-              <div className="p-4 rounded-2xl bg-white/70 border border-gray-100 shadow-sm">
-                <h4 className="text-sm font-medium text-tf-primary mb-2.5 flex items-center gap-2">
-                  <TrendingDown className="w-4 h-4 text-amber-500" />
-                  待提升项
-                </h4>
-                <ul className="space-y-2">
-                  {record.weaknesses.map((w, i) => (
-                    <li
-                      key={i}
-                      className="flex items-start gap-2.5 text-sm text-tf-secondary"
-                    >
-                      <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-                      <span className="leading-relaxed">{w}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-
-          {/* Right: Dimension scores (compact sidebar) */}
-          {hasDimensions && (
-            <div className="p-4 rounded-2xl bg-white/70 border border-gray-100 shadow-sm">
-              <h4 className="text-sm font-medium text-tf-primary mb-3 flex items-center gap-2">
-                <Target className="w-4 h-4 text-tf-accent" />
-                各维度评分
+        {/* ── Job Description (left) + Evaluation (right) ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          {/* Job Description — LEFT */}
+          {record.jobDescription && (
+            <div className="p-3.5 rounded-xl bg-white/70 border border-gray-100 shadow-sm">
+              <h4 className="text-sm font-semibold text-tf-primary mb-1.5 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-tf-accent" />
+                岗位描述
               </h4>
-              <div className="space-y-3">
-                {dimensions.map((dim) => (
-                  <div key={dim.name}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs text-tf-primary font-medium">
-                        {dim.name}
-                      </span>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] text-tf-text-secondary">
-                          {formatPercent((dim.weight || 0) * 100, 0)}
-                        </span>
-                        <span
-                          className={cn(
-                            'text-xs font-bold',
-                            getScoreColor(dim.score)
-                          )}
-                        >
-                          {dim.score}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="w-full h-1.5 rounded-full bg-black/5 overflow-hidden">
-                      <div
-                        className={cn(
-                          'h-full rounded-full transition-all duration-1000 ease-out',
-                          dim.score >= 80
-                            ? 'bg-emerald-500'
-                            : dim.score >= 60
-                            ? 'bg-tf-accent'
-                            : 'bg-red-500'
-                        )}
-                        style={{ width: `${dim.score}%` }}
-                      />
-                    </div>
-                    {dim.details && dim.details.length > 0 && (
-                      <ul className="mt-1.5 space-y-0.5">
-                        {dim.details.map((detail, i) => (
-                          <li
-                            key={i}
-                            className="text-[11px] text-tf-text-secondary pl-3 relative before:absolute before:left-0 before:top-1.5 before:w-1 before:h-1 before:rounded-full before:bg-tf-accent/40"
-                          >
-                            {detail}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                ))}
+              <div className="max-h-32 overflow-y-auto pr-1">
+                <p className="text-sm text-tf-text-secondary leading-relaxed whitespace-pre-wrap">
+                  {record.jobDescription}
+                </p>
               </div>
+            </div>
+          )}
+
+          {/* Evaluation — RIGHT */}
+          {(record.recommendation || record.summary) && (
+            <div className="p-3.5 rounded-xl bg-white/70 border border-gray-100 shadow-sm">
+              <h4 className="text-sm font-semibold text-tf-primary mb-1.5 flex items-center gap-2">
+                <ThumbsUp className="w-4 h-4 text-tf-accent" />
+                综合评价
+              </h4>
+              <p className="text-sm text-tf-secondary leading-relaxed">
+                {record.recommendation || record.summary}
+              </p>
             </div>
           )}
         </div>
 
-        {/* Recommendation */}
-        {(record.recommendation || record.summary) && (
-          <div className="p-4 rounded-2xl bg-white/70 border border-gray-100 shadow-sm">
-            <h4 className="text-sm font-medium text-tf-primary mb-2 flex items-center gap-2">
-              <ThumbsUp className="w-4 h-4 text-tf-accent" />
-              综合推荐
+        {/* ── Dimension Scores: Horizontal Layout ── */}
+        {hasDimensions && (
+          <div className="p-3.5 rounded-xl bg-white/70 border border-gray-100 shadow-sm">
+            <h4 className="text-sm font-semibold text-tf-primary mb-3 flex items-center gap-2">
+              <Target className="w-4 h-4 text-tf-accent" />
+              各维度评分
             </h4>
-            <p className="text-sm text-tf-secondary leading-relaxed">
-              {record.recommendation || record.summary}
-            </p>
-          </div>
-        )}
-
-        {/* Job Description — collapsible with scroll */}
-        {record.jobDescription && (
-          <div className="p-4 rounded-2xl bg-white/70 border border-gray-100 shadow-sm">
-            <h4 className="text-sm font-medium text-tf-primary mb-2 flex items-center gap-2">
-              <FileText className="w-4 h-4 text-tf-accent" />
-              岗位描述
-            </h4>
-            <div className="max-h-60 overflow-y-auto pr-2 -mr-1">
-              <p className="text-sm text-tf-secondary leading-relaxed whitespace-pre-wrap">
-                {record.jobDescription}
-              </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {dimensions.map((dim) => (
+                <div key={dim.name} className="p-3 rounded-lg bg-gray-50/80 border border-gray-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-tf-primary font-medium">
+                      {dim.name}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-tf-text-secondary">
+                        {formatPercent((dim.weight || 0) * 100, 0)}
+                      </span>
+                      <span
+                        className={cn(
+                          'text-base font-bold',
+                          getScoreColor(dim.score)
+                        )}
+                      >
+                        {dim.score}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="w-full h-2 rounded-full bg-black/5 overflow-hidden mb-2">
+                    <div
+                      className={cn(
+                        'h-full rounded-full transition-all duration-1000 ease-out',
+                        dim.score >= 80
+                          ? 'bg-emerald-500'
+                          : dim.score >= 60
+                          ? 'bg-tf-accent'
+                          : 'bg-red-500'
+                      )}
+                      style={{ width: `${dim.score}%` }}
+                    />
+                  </div>
+                  {dim.details && dim.details.length > 0 && (
+                    <ul className="space-y-1">
+                      {dim.details.map((detail, i) => (
+                        <li
+                          key={i}
+                          className="text-xs text-tf-text-secondary leading-relaxed"
+                        >
+                          · {detail}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         )}
+
+        {/* ── Strengths & Weaknesses ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          {/* Strengths */}
+          {record.strengths && record.strengths.length > 0 && (
+            <div className="p-3.5 rounded-xl bg-white/70 border border-gray-100 shadow-sm">
+              <h4 className="text-sm font-semibold text-tf-primary mb-2 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-emerald-500" />
+                候选人优势
+              </h4>
+              <ul className="space-y-1.5">
+                {record.strengths.map((s, i) => (
+                  <li
+                    key={i}
+                    className="flex items-start gap-2 text-sm text-tf-secondary"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                    <span className="leading-snug">{s}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Weaknesses */}
+          {record.weaknesses && record.weaknesses.length > 0 && (
+            <div className="p-3.5 rounded-xl bg-white/70 border border-gray-100 shadow-sm">
+              <h4 className="text-sm font-semibold text-tf-primary mb-2 flex items-center gap-2">
+                <TrendingDown className="w-4 h-4 text-amber-500" />
+                待提升项
+              </h4>
+              <ul className="space-y-1.5">
+                {record.weaknesses.map((w, i) => (
+                  <li
+                    key={i}
+                    className="flex items-start gap-2 text-sm text-tf-secondary"
+                  >
+                    <AlertCircle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <span className="leading-snug">{w}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
       </div>
     </Dialog>
   );
