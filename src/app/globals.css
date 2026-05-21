@@ -1,26 +1,254 @@
 @import "tailwindcss";
 
+/* ============================================================
+   TalentFlow — Design System (iOS 26 Liquid Glass)
+   ============================================================ */
+
+/* ---- Custom Properties (CSS Variables) ---- */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --tf-primary: #1C1917;
+  --tf-secondary: #44403C;
+  --tf-accent: #CA8A04;
+  --tf-accent-hover: #A16207;
+  --tf-bg: #FAFAF9;
+  --tf-text: #0C0A09;
+  --tf-text-secondary: #78716C;
+  --tf-glass-bg: rgba(255, 255, 255, 0.6);
+  --tf-glass-border: rgba(255, 255, 255, 0.4);
+  --tf-glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  --tf-glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --tf-radius: 24px;
+  --tf-radius-sm: 16px;
+  --tf-radius-xs: 12px;
+  --tf-transition: 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ---- Tailwind v4 @theme inline config ---- */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-tf-primary: var(--tf-primary);
+  --color-tf-secondary: var(--tf-secondary);
+  --color-tf-accent: var(--tf-accent);
+  --color-tf-accent-hover: var(--tf-accent-hover);
+  --color-tf-bg: var(--tf-bg);
+  --color-tf-text: var(--tf-text);
+  --color-tf-text-secondary: var(--tf-text-secondary);
+  --color-tf-glass-bg: var(--tf-glass-bg);
+  --color-tf-glass-border: var(--tf-glass-border);
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'Noto Serif SC', 'Playfair Display', Georgia, serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ---- Base Reset ---- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--tf-bg);
+  color: var(--tf-text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ---- Typography ---- */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Noto Serif SC', 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  color: var(--tf-primary);
+  line-height: 1.2;
+}
+
+/* ---- Liquid Glass Card ---- */
+.glass-card {
+  background: var(--tf-glass-bg);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--tf-glass-border);
+  border-radius: var(--tf-radius);
+  box-shadow: var(--tf-glass-shadow), var(--tf-glass-highlight);
+  transition: all var(--tf-transition);
+}
+
+.glass-card:hover {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12), var(--tf-glass-highlight);
+  transform: translateY(-2px);
+}
+
+.glass-card-sm {
+  background: var(--tf-glass-bg);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid var(--tf-glass-border);
+  border-radius: var(--tf-radius-sm);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06), var(--tf-glass-highlight);
+  transition: all var(--tf-transition);
+}
+
+.glass-card-xs {
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--tf-radius-xs);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all var(--tf-transition);
+}
+
+/* ---- Shimmer Effect ---- */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.4) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s ease-in-out infinite;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* ---- Fade In Animation ---- */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.animate-fade-in-up-delay-1 {
+  animation: fadeInUp 0.6s ease-out 0.1s forwards;
+  opacity: 0;
+}
+
+.animate-fade-in-up-delay-2 {
+  animation: fadeInUp 0.6s ease-out 0.2s forwards;
+  opacity: 0;
+}
+
+.animate-fade-in-up-delay-3 {
+  animation: fadeInUp 0.6s ease-out 0.3s forwards;
+  opacity: 0;
+}
+
+/* ---- Dialog Animations ---- */
+@keyframes dialogBackdropIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes dialogContentIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-dialog-backdrop {
+  animation: dialogBackdropIn 0.2s ease-out forwards;
+}
+
+.animate-dialog-content {
+  animation: dialogContentIn 0.2s ease-out forwards;
+}
+
+/* ---- Gradient Text ---- */
+.gradient-text {
+  background: linear-gradient(135deg, var(--tf-primary) 0%, var(--tf-accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ---- Accent Gradient Background ---- */
+.gradient-accent {
+  background: linear-gradient(135deg, var(--tf-accent) 0%, var(--tf-accent-hover) 100%);
+}
+
+/* ---- Glow Effect ---- */
+.glow-accent {
+  box-shadow: 0 0 20px rgba(202, 138, 4, 0.3), 0 0 60px rgba(202, 138, 4, 0.1);
+}
+
+/* ---- Ring Progress ---- */
+.ring-progress {
+  transform: rotate(-90deg);
+}
+
+/* ---- Scrollbar Styling ---- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(68, 64, 60, 0.2);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(68, 64, 60, 0.4);
+}
+
+/* ---- Selection Color ---- */
+::selection {
+  background: rgba(202, 138, 4, 0.2);
+  color: var(--tf-primary);
+}
+
+/* ---- Focus Styles ---- */
+:focus-visible {
+  outline: 2px solid var(--tf-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ---- Utility: Disable dark mode (light-only design) ---- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --tf-bg: #FAFAF9;
+    --tf-text: #0C0A09;
+  }
 }
