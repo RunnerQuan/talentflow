@@ -75,6 +75,10 @@ export async function POST(request: NextRequest) {
                 difficulty: z.enum(['easy', 'medium', 'hard']).describe('难度'),
                 expectedAnswer: z.string().describe('参考答案/期望回答要点'),
                 followUp: z.string().describe('追问问题'),
+                whyAsk: z.string().describe('为什么问这个问题'),
+                evidenceFromResume: z.string().describe('这个问题基于简历中的哪段经历'),
+                targetRisk: z.string().describe('这个问题验证哪个风险或能力缺口'),
+                scoringRubric: z.array(z.string()).min(3).describe('评分标准，至少 3 条'),
               })
             )
             .describe('面试问题列表'),
@@ -93,15 +97,20 @@ ${candidateSummary}
 2. 难度分布：至少1个简单、2个中等、1个困难
 3. 问题应涵盖该面试轮次的核心考察点
 4. 每个问题需附带参考答案要点和追问问题
+5. 每个问题必须包含：
+   - whyAsk：为什么问这个问题
+   - evidenceFromResume：这个问题基于简历中的哪段经历
+   - targetRisk：这个问题验证哪个风险或能力缺口
+   - scoringRubric：评分标准，至少 3 条
 
 请生成面试问题：`;
 
-        const object = await generateObjectWithFallback<{ questions: Array<{ question: string; category: string; difficulty: string; expectedAnswer: string; followUp: string }> }>({
+        const object = await generateObjectWithFallback<{ questions: Array<{ question: string; category: string; difficulty: string; expectedAnswer: string; followUp: string; whyAsk: string; evidenceFromResume: string; targetRisk: string; scoringRubric: string[] }> }>({
           model,
           schema: questionsSchema,
           prompt: questionsPrompt,
           temperature: 0.3,
-          fallbackJsonHint: 'JSON 格式：{ "questions": [{ "question": "问题", "category": "类别", "difficulty": "easy/medium/hard", "expectedAnswer": "参考答案", "followUp": "追问" }] }',
+          fallbackJsonHint: 'JSON 格式：{ "questions": [{ "question": "问题", "category": "类别", "difficulty": "easy/medium/hard", "expectedAnswer": "参考答案", "followUp": "追问", "whyAsk": "为什么问", "evidenceFromResume": "简历证据", "targetRisk": "目标风险", "scoringRubric": ["标准1","标准2","标准3"] }] }',
         });
 
         const questions: InterviewQuestion[] = object.questions.map((q) => ({
@@ -126,6 +135,14 @@ ${candidateSummary}
         const evaluationSchema = z.object({
           score: z.number().min(0).max(100).describe('回答得分 0-100'),
           feedback: z.string().describe('详细反馈'),
+          dimensionScores: z.object({
+            accuracy: z.number().min(0).max(100),
+            logic: z.number().min(0).max(100),
+            depth: z.number().min(0).max(100),
+            authenticity: z.number().min(0).max(100),
+            communication: z.number().min(0).max(100),
+          }),
+          riskVerified: z.enum(['resolved', 'partially_resolved', 'confirmed', 'unknown']),
         });
 
         const evalPrompt = `你是一个专业的面试评估专家。请对候选人的回答进行评估。
@@ -134,24 +151,39 @@ ${candidateSummary}
 问题类别：${question.category}
 难度：${question.difficulty}
 参考答案要点：${question.expectedAnswer}
+为什么问：${question.whyAsk || '未提供'}
+目标风险：${question.targetRisk || '未提供'}
+评分标准：${question.scoringRubric?.join('；') || '未提供'}
 
 候选人回答：
 ${answer}
 
 请从以下维度评估：
-1. 回答的完整性和准确性
-2. 逻辑性和条理性
-3. 专业深度
-4. 实例和经验的引用
+1. accuracy：专业准确性
+2. logic：逻辑结构
+3. depth：技术深度
+4. authenticity：经验真实性
+5. communication：表达清晰度
 
-给出0-100的分数和详细反馈：`;
+同时判断该问题对应风险是否被验证：
+- resolved：风险已解除
+- partially_resolved：部分解除
+- confirmed：风险被确认
+- unknown：信息不足
 
-        const evalResult = await generateObjectWithFallback<{ score: number; feedback: string }>({
+给出0-100的总分、五个维度分数、风险验证状态和详细反馈：`;
+
+        const evalResult = await generateObjectWithFallback<{
+          score: number;
+          feedback: string;
+          dimensionScores: InterviewEvaluation['dimensionScores'];
+          riskVerified: InterviewEvaluation['riskVerified'];
+        }>({
           model,
           schema: evaluationSchema,
           prompt: evalPrompt,
           temperature: 0.2,
-          fallbackJsonHint: 'JSON 格式：{ "score": 0-100的数字, "feedback": "详细反馈" }',
+          fallbackJsonHint: 'JSON 格式：{ "score": 0-100的数字, "feedback": "详细反馈", "dimensionScores": { "accuracy": 80, "logic": 80, "depth": 80, "authenticity": 80, "communication": 80 }, "riskVerified": "resolved/partially_resolved/confirmed/unknown" }',
         });
 
         const evaluation: InterviewEvaluation = {
@@ -159,6 +191,8 @@ ${answer}
           answer,
           score: Math.round(evalResult.score),
           feedback: evalResult.feedback,
+          dimensionScores: evalResult.dimensionScores,
+          riskVerified: evalResult.riskVerified,
         };
 
         return NextResponse.json({ evaluation });
@@ -180,6 +214,9 @@ ${answer}
           overallScore: z.number().min(0).max(100).describe('总体评分'),
           recommendation: z.string().describe('录用建议'),
           summary: z.string().describe('面试总结'),
+          nextStep: z.enum(['next_round', 'offer', 'hold', 'reject']),
+          nextRoundFocus: z.array(z.string()),
+          finalRisks: z.array(z.string()),
         });
 
         const evalSummary = evaluations
@@ -210,15 +247,25 @@ ${evalSummary}
 1. 总体评分（0-100）
 2. 录用建议（强烈推荐/推荐/待定/不推荐）
 3. 综合面试总结（100-200字）
+4. nextStep：next_round / offer / hold / reject
+5. nextRoundFocus：下一轮重点追问方向
+6. finalRisks：最终保留风险
 
 面试总结应包括候选人的核心优势、不足之处和发展潜力评估。`;
 
-        const reportResult = await generateObjectWithFallback<{ overallScore: number; recommendation: string; summary: string }>({
+        const reportResult = await generateObjectWithFallback<{
+          overallScore: number;
+          recommendation: string;
+          summary: string;
+          nextStep: InterviewReport['nextStep'];
+          nextRoundFocus: string[];
+          finalRisks: string[];
+        }>({
           model,
           schema: reportSchema,
           prompt: reportPrompt,
           temperature: 0.2,
-          fallbackJsonHint: 'JSON 格式：{ "overallScore": 0-100的数字, "recommendation": "录用建议", "summary": "面试总结" }',
+          fallbackJsonHint: 'JSON 格式：{ "overallScore": 0-100的数字, "recommendation": "录用建议", "summary": "面试总结", "nextStep": "next_round/offer/hold/reject", "nextRoundFocus": ["方向1"], "finalRisks": ["风险1"] }',
         });
 
         const report: InterviewReport = {
@@ -229,6 +276,9 @@ ${evalSummary}
           overallScore: Math.round(reportResult.overallScore),
           recommendation: reportResult.recommendation,
           summary: reportResult.summary,
+          nextStep: reportResult.nextStep,
+          nextRoundFocus: reportResult.nextRoundFocus,
+          finalRisks: reportResult.finalRisks,
         };
 
         return NextResponse.json({ report });

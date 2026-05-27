@@ -17,6 +17,7 @@ import {
   Lightbulb,
   Star,
   CheckCircle2,
+  Target,
 } from 'lucide-react';
 
 interface QuestionCardProps {
@@ -113,6 +114,34 @@ export function QuestionCard({
           )}
 
           {/* Follow-up question */}
+          {(question.whyAsk || question.evidenceFromResume || question.targetRisk || question.scoringRubric?.length) && (
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {question.whyAsk && (
+                <InfoBlock label="为什么问" value={question.whyAsk} />
+              )}
+              {question.evidenceFromResume && (
+                <InfoBlock label="简历证据" value={question.evidenceFromResume} />
+              )}
+              {question.targetRisk && (
+                <InfoBlock label="目标风险" value={question.targetRisk} />
+              )}
+              {question.scoringRubric && question.scoringRubric.length > 0 && (
+                <div className="glass-card-xs p-3">
+                  <p className="mb-2 text-xs font-medium text-tf-primary">评分标准</p>
+                  <ul className="space-y-1">
+                    {question.scoringRubric.map((item) => (
+                      <li key={item} className="flex items-start gap-2 text-xs text-tf-secondary">
+                        <Target className="mt-0.5 h-3 w-3 shrink-0 text-tf-accent" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Follow-up question */}
           {question.followUp && (
             <div className="mt-3 flex items-start gap-2 px-1">
               <MessageSquare className="w-3.5 h-3.5 text-tf-text-secondary flex-shrink-0 mt-0.5" />
@@ -166,10 +195,49 @@ export function QuestionCard({
               <p className="text-xs text-tf-secondary leading-relaxed">
                 {evaluation.feedback}
               </p>
+              {evaluation.dimensionScores && (
+                <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+                  {Object.entries({
+                    accuracy: '准确性',
+                    logic: '逻辑',
+                    depth: '深度',
+                    authenticity: '真实性',
+                    communication: '表达',
+                  }).map(([key, label]) => (
+                    <div key={key} className="rounded-xl bg-white/55 p-2 text-center">
+                      <p className="text-sm font-bold text-tf-primary">
+                        {evaluation.dimensionScores?.[key as keyof NonNullable<typeof evaluation.dimensionScores>]}
+                      </p>
+                      <p className="text-[11px] text-tf-text-secondary">{label}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {evaluation.riskVerified && (
+                <p className="mt-3 text-xs font-medium text-tf-accent">
+                  风险验证：{riskVerifiedLabel[evaluation.riskVerified]}
+                </p>
+              )}
             </div>
           )}
         </div>
       )}
     </GlassCard>
+  );
+}
+
+const riskVerifiedLabel = {
+  resolved: '已解除',
+  partially_resolved: '部分解除',
+  confirmed: '风险确认',
+  unknown: '信息不足',
+};
+
+function InfoBlock({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="glass-card-xs p-3">
+      <p className="mb-1 text-xs font-medium text-tf-primary">{label}</p>
+      <p className="text-xs leading-relaxed text-tf-secondary">{value}</p>
+    </div>
   );
 }

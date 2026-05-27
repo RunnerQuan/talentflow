@@ -110,6 +110,10 @@ export default function MatchPage() {
           recommendation: r.recommendation || '',
           strengths: r.strengths || [],
           weaknesses: r.weaknesses || [],
+          evidences: r.evidences || [],
+          risks: r.risks || [],
+          followUpQuestions: r.followUpQuestions || [],
+          decision: r.decision,
           createdAt: new Date().toISOString(),
         });
       }
@@ -298,7 +302,10 @@ export default function MatchPage() {
                       导出报告
                     </Button>
                   </div>
-                  <MatchResultDisplay result={activeResult} />
+                  <MatchResultDisplay
+                    result={activeResult}
+                    candidateId={candidates[selectedCandidateIdx]?.id}
+                  />
                 </>
               ) : (
                 <GlassCard className="p-12 text-center">

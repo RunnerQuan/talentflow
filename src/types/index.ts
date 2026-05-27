@@ -116,6 +116,101 @@ export interface MatchResult {
   candidateName: string;
 }
 
+export type EvidenceType =
+  | 'skill'
+  | 'experience'
+  | 'project'
+  | 'education'
+  | 'summary'
+  | 'missing';
+
+export type EvidenceVerdict = 'matched' | 'partial' | 'missing' | 'uncertain';
+
+export interface MatchEvidence {
+  id: string;
+  dimension: string;
+  jdRequirement: string;
+  resumeEvidence: string;
+  evidenceType: EvidenceType;
+  confidence: number;
+  verdict: EvidenceVerdict;
+}
+
+export interface MatchRisk {
+  id: string;
+  level: 'green' | 'yellow' | 'red';
+  title: string;
+  description: string;
+  suggestedAction: string;
+}
+
+export interface FollowUpQuestion {
+  id: string;
+  question: string;
+  targetRisk: string;
+  reason: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+}
+
+export interface ExplainableMatchResult extends MatchResult {
+  evidences?: MatchEvidence[];
+  risks?: MatchRisk[];
+  followUpQuestions?: FollowUpQuestion[];
+  decision?: {
+    level: 'strong_recommend' | 'recommend' | 'hold' | 'not_recommend';
+    nextStep: 'technical_interview' | 'hr_screening' | 'talent_pool' | 'reject';
+    summary: string;
+  };
+}
+
+export interface JobSkillRequirement {
+  name: string;
+  category: string;
+  importance: 'must' | 'preferred' | 'bonus';
+  evidence: string;
+}
+
+export interface SkillGapNode {
+  id: string;
+  name: string;
+  category: string;
+  level?: number;
+  source: 'candidate' | 'job' | 'both' | 'missing';
+  importance?: 'must' | 'preferred' | 'bonus';
+  gapLevel?: 'none' | 'minor' | 'major';
+  candidateEvidence?: string;
+  jdEvidence?: string;
+}
+
+export interface SkillGapEdge {
+  source: string;
+  target: string;
+  relation: 'has_evidence' | 'requires' | 'missing' | 'related';
+}
+
+export interface SkillGapGraphData {
+  nodes: SkillGapNode[];
+  edges: SkillGapEdge[];
+}
+
+export interface BatchMatchResult {
+  candidateId?: string;
+  candidateName: string;
+  score: number;
+  rank: number;
+  level: 'A' | 'B' | 'C' | 'D';
+  highlights: string[];
+  risks: string[];
+  suggestedAction: '直接技术面' | 'HR 初筛' | '进入人才库' | '暂不推荐';
+}
+
+export interface BatchMatchSummary {
+  totalCandidates: number;
+  recommendedCount: number;
+  averageScore: number;
+  topCandidateName: string;
+}
+
 /** Interview question */
 export interface InterviewQuestion {
   id: string;
@@ -124,6 +219,10 @@ export interface InterviewQuestion {
   difficulty: 'easy' | 'medium' | 'hard';
   expectedAnswer?: string;
   followUp?: string;
+  whyAsk?: string;
+  evidenceFromResume?: string;
+  targetRisk?: string;
+  scoringRubric?: string[];
 }
 
 /** Interview round type */
@@ -135,6 +234,14 @@ export interface InterviewEvaluation {
   answer: string;
   score: number;
   feedback: string;
+  dimensionScores?: {
+    accuracy: number;
+    logic: number;
+    depth: number;
+    authenticity: number;
+    communication: number;
+  };
+  riskVerified?: 'resolved' | 'partially_resolved' | 'confirmed' | 'unknown';
 }
 
 /** Complete interview report */
@@ -146,6 +253,9 @@ export interface InterviewReport {
   overallScore: number;
   recommendation: string;
   summary: string;
+  nextStep?: 'next_round' | 'offer' | 'hold' | 'reject';
+  nextRoundFocus?: string[];
+  finalRisks?: string[];
 }
 
 /** Efficiency statistics for dashboard */
@@ -211,6 +321,10 @@ export interface MatchResultRecord {
   recommendation?: string;
   strengths: string[];
   weaknesses: string[];
+  evidences?: MatchEvidence[];
+  risks?: MatchRisk[];
+  followUpQuestions?: FollowUpQuestion[];
+  decision?: ExplainableMatchResult['decision'];
   createdAt: string;
 }
 

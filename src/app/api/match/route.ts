@@ -3,7 +3,12 @@
 // ============================================================
 
 import { NextRequest, NextResponse } from 'next/server';
-import type { ModelSettings, CandidateProfile, MatchResult, MatchDimension } from '@/types';
+import type {
+  CandidateProfile,
+  ExplainableMatchResult,
+  MatchDimension,
+  ModelSettings,
+} from '@/types';
 
 /**
  * POST /api/match
@@ -43,6 +48,32 @@ export async function POST(request: NextRequest) {
 
     const model = createModel(modelSettings);
 
+    const matchEvidenceSchema = z.object({
+      id: z.string(),
+      dimension: z.string(),
+      jdRequirement: z.string(),
+      resumeEvidence: z.string(),
+      evidenceType: z.enum(['skill', 'experience', 'project', 'education', 'summary', 'missing']),
+      confidence: z.number().min(0).max(100),
+      verdict: z.enum(['matched', 'partial', 'missing', 'uncertain']),
+    });
+
+    const matchRiskSchema = z.object({
+      id: z.string(),
+      level: z.enum(['green', 'yellow', 'red']),
+      title: z.string(),
+      description: z.string(),
+      suggestedAction: z.string(),
+    });
+
+    const followUpQuestionSchema = z.object({
+      id: z.string(),
+      question: z.string(),
+      targetRisk: z.string(),
+      reason: z.string(),
+      difficulty: z.enum(['easy', 'medium', 'hard']),
+    });
+
     const matchResultSchema = z.object({
       overallScore: z.number().min(0).max(100).describe('总体匹配分数 0-100'),
       dimensions: z
@@ -58,6 +89,14 @@ export async function POST(request: NextRequest) {
       strengths: z.array(z.string()).describe('候选人优势'),
       weaknesses: z.array(z.string()).describe('候选人不足'),
       recommendation: z.string().describe('综合推荐意见'),
+      evidences: z.array(matchEvidenceSchema).describe('JD 要求到简历证据的可追溯证据链'),
+      risks: z.array(matchRiskSchema).describe('绿色强匹配、黄色待追问、红色高风险'),
+      followUpQuestions: z.array(followUpQuestionSchema).describe('基于 yellow/red 风险生成的面试追问'),
+      decision: z.object({
+        level: z.enum(['strong_recommend', 'recommend', 'hold', 'not_recommend']),
+        nextStep: z.enum(['technical_interview', 'hr_screening', 'talent_pool', 'reject']),
+        summary: z.string(),
+      }),
     });
 
     // 构建技能信息，处理空数组情况
@@ -92,18 +131,36 @@ export async function POST(request: NextRequest) {
 - 个人简介：${candidate.summary || '未提供'}
 `;
 
-    const matchPrompt = `你是一个专业的AI招聘匹配助手。请对候选人与岗位的匹配度进行全面评估。
+    const matchPrompt = `你是一个专业的招聘决策智能体。请基于岗位 JD 与候选人简历，输出可解释的人岗匹配结果。
 
-评估维度和权重：
+你必须完成以下任务：
+1. 计算总体匹配分 overallScore。
+2. 按四个维度评分：
 1. 技能匹配（权重40%）：候选人的技能是否与岗位要求匹配
 2. 经验匹配（权重25%）：工作经验年限和行业经验是否符合
-3. 文化匹配（权重20%）：候选人的职业发展方向和价值观是否匹配
-4. 潜力匹配（权重15%）：候选人的学习能力、成长潜力
+3. 岗位适配（权重20%）：候选人的职业方向与岗位任务是否匹配
+4. 成长潜力（权重15%）：候选人的学习能力、成长潜力
+3. 抽取证据链 evidences：
+   - 每条证据必须包含 jdRequirement、resumeEvidence、confidence、verdict。
+   - resumeEvidence 必须来自候选人经历、项目、技能或教育信息，不允许编造。
+   - 如果候选人缺失某项能力，resumeEvidence 填写“简历中未发现直接证据”。
+   - 每个匹配维度至少输出 1 条证据。
+4. 输出 risks：
+   - green 表示强匹配项
+   - yellow 表示需要面试追问
+   - red 表示明显能力缺口或重大不确定性
+   - 至少输出 3 条风险标识。
+5. 基于 yellow/red 风险生成 followUpQuestions，至少 3 个。
+6. 输出 decision：
+   - strong_recommend：强烈推荐进入下一轮
+   - recommend：推荐进入下一轮
+   - hold：暂缓，需要补充信息
+   - not_recommend：不推荐
 
 重要提示：
 - 如果候选人的技能列表显示"简历中未明确列出技能清单"或技能信息不完整，请根据其工作经历、项目经历和技术栈来推断其技能水平
 - 不要因为技能列表为空就给出低分或无法评估，应从整体履历综合判断
-- 每个维度请给出分数(0-100)和详细说明
+- 不允许编造简历不存在的经历；缺失能力必须明确标记为 missing
 
 岗位描述(JD)：
 ---
@@ -136,7 +193,11 @@ JSON 必须包含以下字段：
   维度应包括：技能匹配(weight 0.4), 经验匹配(weight 0.25), 文化匹配(weight 0.2), 潜力匹配(weight 0.15)
 - strengths: 字符串数组（候选人优势）
 - weaknesses: 字符串数组（候选人不足）
-- recommendation: 字符串（综合推荐意见）`;
+- recommendation: 字符串（综合推荐意见）
+- evidences: 数组，每项包含 id, dimension, jdRequirement, resumeEvidence, evidenceType(skill/experience/project/education/summary/missing), confidence(0-100), verdict(matched/partial/missing/uncertain)
+- risks: 数组，每项包含 id, level(green/yellow/red), title, description, suggestedAction
+- followUpQuestions: 数组，每项包含 id, question, targetRisk, reason, difficulty(easy/medium/hard)
+- decision: 对象，包含 level(strong_recommend/recommend/hold/not_recommend), nextStep(technical_interview/hr_screening/talent_pool/reject), summary`;
 
       const { text } = await generateText({
         model,
@@ -156,6 +217,16 @@ JSON 必须包含以下字段：
       if (!parsedData.strengths) parsedData.strengths = [];
       if (!parsedData.weaknesses) parsedData.weaknesses = [];
       if (!parsedData.recommendation) parsedData.recommendation = '';
+      if (!parsedData.evidences) parsedData.evidences = [];
+      if (!parsedData.risks) parsedData.risks = [];
+      if (!parsedData.followUpQuestions) parsedData.followUpQuestions = [];
+      if (!parsedData.decision) {
+        parsedData.decision = {
+          level: 'hold',
+          nextStep: 'hr_screening',
+          summary: '模型未返回完整决策字段，建议人工复核。',
+        };
+      }
       if (typeof parsedData.overallScore !== 'number') parsedData.overallScore = 0;
     }
 
@@ -166,13 +237,17 @@ JSON 必须包含以下字段：
       details: d.details as string[],
     }));
 
-    const result: MatchResult = {
+    const result: ExplainableMatchResult = {
       overallScore: Math.round(parsedData.overallScore as number),
       dimensions,
       strengths: parsedData.strengths as string[],
       weaknesses: parsedData.weaknesses as string[],
       recommendation: parsedData.recommendation as string,
       candidateName: candidate.name,
+      evidences: parsedData.evidences as ExplainableMatchResult['evidences'],
+      risks: parsedData.risks as ExplainableMatchResult['risks'],
+      followUpQuestions: parsedData.followUpQuestions as ExplainableMatchResult['followUpQuestions'],
+      decision: parsedData.decision as ExplainableMatchResult['decision'],
     };
 
     return NextResponse.json({ result });

@@ -19,6 +19,7 @@ import {
   Menu,
   X,
   UserCircle,
+  ListOrdered,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -26,6 +27,7 @@ const NAV_ITEMS = [
   { href: '/upload', label: '简历解析', icon: Upload },
   { href: '/candidates', label: '候选人管理', icon: UserCircle },
   { href: '/match', label: '智能匹配', icon: Users },
+  { href: '/ranking', label: '批量排序', icon: ListOrdered },
   { href: '/interview', label: '面试助手', icon: MessageSquare },
   { href: '/dashboard', label: '数据看板', icon: BarChart3 },
 ];

@@ -36,6 +36,13 @@ const ROUNDS: { key: InterviewRound; label: string }[] = [
   { key: 'final', label: '终面' },
 ];
 
+const NEXT_STEP_LABELS: Record<NonNullable<InterviewReport['nextStep']>, string> = {
+  next_round: '进入下一轮',
+  offer: '发 Offer',
+  hold: '暂缓',
+  reject: '拒绝',
+};
+
 export default function InterviewPage() {
   const { candidates } = useResumeStore();
   const { settings: modelSettings } = useModelStore();
@@ -376,6 +383,39 @@ export default function InterviewPage() {
                     {report.summary}
                   </p>
                 </div>
+
+                {(report.nextStep || report.nextRoundFocus?.length || report.finalRisks?.length) && (
+                  <div className="mt-4 grid gap-4 md:grid-cols-3">
+                    {report.nextStep && (
+                      <div className="glass-card-xs p-4">
+                        <p className="text-xs font-medium text-tf-primary mb-2">下一步建议</p>
+                        <p className="text-lg font-bold text-tf-accent">
+                          {NEXT_STEP_LABELS[report.nextStep]}
+                        </p>
+                      </div>
+                    )}
+                    {report.nextRoundFocus && report.nextRoundFocus.length > 0 && (
+                      <div className="glass-card-xs p-4">
+                        <p className="text-xs font-medium text-tf-primary mb-2">下一轮重点</p>
+                        <ul className="space-y-1">
+                          {report.nextRoundFocus.map((item) => (
+                            <li key={item} className="text-xs text-tf-secondary">{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {report.finalRisks && report.finalRisks.length > 0 && (
+                      <div className="glass-card-xs p-4">
+                        <p className="text-xs font-medium text-tf-primary mb-2">保留风险</p>
+                        <ul className="space-y-1">
+                          {report.finalRisks.map((item) => (
+                            <li key={item} className="text-xs text-tf-secondary">{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
               </GlassCard>
             )}
 

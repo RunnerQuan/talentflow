@@ -3,7 +3,7 @@
 // ============================================================
 
 import { create } from 'zustand';
-import type { MatchResultRecord, MatchResult } from '@/types';
+import type { ExplainableMatchResult, MatchResultRecord } from '@/types';
 import {
   getAllMatches,
   putMatch as dbPutMatch,
@@ -13,7 +13,7 @@ interface MatchState {
   /** Persisted match records from IndexedDB */
   records: MatchResultRecord[];
   /** In-memory match results from current session */
-  results: MatchResult[];
+  results: ExplainableMatchResult[];
   activeResultIndex: number;
   jdText: string;
   isMatching: boolean;
@@ -27,13 +27,13 @@ interface MatchState {
   /** Get match records for a specific candidate. */
   getByCandidate: (candidateId: string) => MatchResultRecord[];
   /** In-memory session result management. */
-  addResult: (result: MatchResult) => void;
+  addResult: (result: ExplainableMatchResult) => void;
   setActiveResult: (index: number) => void;
   setJdText: (text: string) => void;
   setMatching: (val: boolean) => void;
   setError: (error: string | null) => void;
   clearResults: () => void;
-  activeResult: () => MatchResult | null;
+  activeResult: () => ExplainableMatchResult | null;
 }
 
 export const useMatchStore = create<MatchState>((set, get) => ({

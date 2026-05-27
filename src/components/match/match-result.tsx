@@ -7,7 +7,12 @@
 import { GlassCard } from '@/components/ui/glass-card';
 import { RingProgress } from '@/components/ui/progress';
 import { cn, formatPercent } from '@/lib/utils';
-import type { MatchResult as MatchResultType } from '@/types';
+import { useInterviewStore } from '@/lib/store/interview-store';
+import { DecisionCard } from '@/components/match/decision-card';
+import { EvidenceChain } from '@/components/match/evidence-chain';
+import { FollowUpQuestions } from '@/components/match/follow-up-questions';
+import { RiskBoard } from '@/components/match/risk-board';
+import type { ExplainableMatchResult, FollowUpQuestion, InterviewQuestion } from '@/types';
 import {
   TrendingUp,
   TrendingDown,
@@ -15,18 +20,45 @@ import {
   Target,
   CheckCircle2,
   AlertCircle,
+  Check,
 } from 'lucide-react';
+import { useState } from 'react';
 
 interface MatchResultProps {
-  result: MatchResultType;
+  result: ExplainableMatchResult;
+  candidateId?: string;
 }
 
-export function MatchResultDisplay({ result }: MatchResultProps) {
+export function MatchResultDisplay({ result, candidateId }: MatchResultProps) {
+  const { addRecord } = useInterviewStore();
+  const [created, setCreated] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+
   /** Score color based on value. */
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-emerald-500';
     if (score >= 60) return 'text-tf-accent';
     return 'text-red-500';
+  };
+
+  const handleCreateInterview = async () => {
+    if (!candidateId || !result.followUpQuestions || result.followUpQuestions.length === 0) return;
+    setIsCreating(true);
+    try {
+      const questions = convertFollowUpsToInterviewQuestions(result.followUpQuestions);
+      await addRecord({
+        id: `interview-${candidateId}-technical-${Date.now()}`,
+        candidateId,
+        round: 'technical',
+        questions,
+        evaluations: [],
+        report: null,
+        createdAt: new Date().toISOString(),
+      });
+      setCreated(true);
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   return (
@@ -164,6 +196,38 @@ export function MatchResultDisplay({ result }: MatchResultProps) {
           {result.recommendation}
         </p>
       </GlassCard>
+
+      <DecisionCard decision={result.decision} />
+      <EvidenceChain evidences={result.evidences} />
+      <RiskBoard risks={result.risks} />
+      <FollowUpQuestions
+        questions={result.followUpQuestions}
+        onCreateInterview={candidateId && !created ? handleCreateInterview : undefined}
+        isCreating={isCreating}
+      />
+      {created && (
+        <GlassCard variant="sm" className="flex items-center gap-3 p-4">
+          <Check className="h-5 w-5 text-emerald-600" />
+          <p className="text-sm text-tf-secondary">已创建技术面试，可在候选人详情的面试记录中查看。</p>
+        </GlassCard>
+      )}
     </div>
   );
+}
+
+function convertFollowUpsToInterviewQuestions(
+  followUps: FollowUpQuestion[]
+): InterviewQuestion[] {
+  return followUps.map((q) => ({
+    id: q.id,
+    question: q.question,
+    category: q.targetRisk,
+    difficulty: q.difficulty,
+    expectedAnswer: `请重点验证：${q.reason}`,
+    followUp: '根据候选人回答继续追问项目细节、指标、技术取舍和个人贡献。',
+    whyAsk: q.reason,
+    evidenceFromResume: '由匹配风险自动生成。',
+    targetRisk: q.targetRisk,
+    scoringRubric: ['能说明真实项目背景', '能解释关键技术取舍', '能给出指标或失败处理细节'],
+  }));
 }
